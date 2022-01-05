@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "first_app",
-    "slug": "first_app",
-    "version": "1.0.0",
+    "name": "Facebook",
+    "slug": "facebook",
+    "version": "348.0.0.39.118",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
@@ -23,7 +23,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "package": "facebook.test"
     },
     "web": {
       "favicon": "./assets/favicon.png"

